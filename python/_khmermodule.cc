@@ -1106,8 +1106,8 @@ static PyObject * hash_abundance_distribution(PyObject * self, PyObject * args)
   khmer::HashIntoType * dist;
   dist = hashtable->abundance_distribution();
   
-  PyObject * x = PyList_New(256);
-  for (int i = 0; i < 256; i++) {
+  PyObject * x = PyList_New(65536);
+  for (int i = 0; i < 65536; i++) {
     PyList_SET_ITEM(x, i, PyInt_FromLong(dist[i]));
   }
 

@@ -647,7 +647,7 @@ BoundedCounterType Hashtable::get_max_count(const std::string &s,
 
 HashIntoType * Hashtable::abundance_distribution() const
 {
-  HashIntoType * dist = new HashIntoType[256];
+  HashIntoType * dist = new HashIntoType[65536];
   HashIntoType i;
   
   for (i = 0; i < 256; i++) {
@@ -660,6 +660,16 @@ HashIntoType * Hashtable::abundance_distribution() const
     } else {
       dist[0]++;
     }
+  }
+
+  for (TagCountMap::const_iterator ti = _bigcounts.begin();
+       ti != _bigcounts.end(); ti++) {
+    // cout << "foo " << ti->first << " " << ti->second << "\n";
+    unsigned int count = ti->second;
+    if (count > 65535) {
+      count = 65535;
+    }
+    dist[count]++;
   }
 
   return dist;

@@ -38,6 +38,7 @@ namespace khmer {
     HashIntoType bitmask;
 
     BoundedCounterType * _counts;
+    TagCountMap _bigcounts;
 
     virtual void _allocate_counters() {
       _counts = new BoundedCounterType[_tablesize];
@@ -90,6 +91,8 @@ namespace khmer {
 
       if (_counts[bin] < MAX_COUNT) {
 	_counts[bin] += 1;
+      } else {
+	_bigcounts[hash]++;
       }
     }
 
@@ -98,6 +101,8 @@ namespace khmer {
 
       if (_counts[bin] < MAX_COUNT) {
 	_counts[bin] += 1;
+      } else {
+	_bigcounts[khash]++;
       }
     }
 
