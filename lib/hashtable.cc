@@ -353,6 +353,59 @@ unsigned int khmer::output_filtered_fasta_file(const std::string &inputfile,
    return n_kept;
 }
 
+unsigned int Hashtable::output_norepeats_fasta_file(const std::string &inputfile,
+					       const std::string &outputfile,
+					       CallbackFn callback,
+					       void * callback_data)
+{
+   IParser* parser = IParser::get_parser(inputfile.c_str());
+   ofstream outfile;
+   outfile.open(outputfile.c_str());
+   Read read;
+   string name;
+   string seq;
+   unsigned int n_kept = 0;
+   unsigned int read_num = 0;
+
+
+   while(!parser->is_complete()) {
+      read = parser->get_next_read();
+
+      seq = read.seq;
+      name = read.name;
+
+      bool keep = true;
+
+      unsigned int maxval = get_max_bigcount(seq);
+      if (maxval >= 65535) {
+	keep = false;
+      }
+
+      if (keep) {
+	outfile << ">" << name << endl;
+	outfile << seq << endl;
+
+	n_kept++;
+      }
+
+      read_num++;
+
+      // run callback, if specified
+      if (read_num % CALLBACK_PERIOD == 0 && callback) {
+         try {
+            callback("output_norepeats_fasta_file", callback_data,
+		      read_num, n_kept);
+	 } catch (...) {
+	     outfile.close();
+	     throw;
+	 }
+      }
+   }
+  
+   outfile.close();
+   return n_kept;
+}
+
 //
 // check_and_process_read: checks for non-ACGT characters before consuming
 //
@@ -639,6 +692,62 @@ BoundedCounterType Hashtable::get_max_count(const std::string &s,
 
       if (count > max_count) {
 	max_count = count;
+      }
+    }
+  }
+  return max_count;
+}
+
+unsigned int Hashtable::get_max_bigcount(const std::string &s,
+					 HashIntoType lower_bound,
+					 HashIntoType upper_bound)
+{
+  const unsigned int length = s.length();
+  const char * sp = s.c_str();
+  unsigned int max_count = 0, count;
+  TagCountMap::const_iterator ti;
+
+  HashIntoType h = 0, r = 0;
+  bool bounded = true;
+
+  if (lower_bound == upper_bound && upper_bound == 0) {
+    bounded = false;
+  }
+
+  HashIntoType bin = _hash(sp, _ksize, h, r);
+  if (!bounded || (bin >= lower_bound && bin < upper_bound)) {
+    if (get_count(bin) >= MAX_COUNT) {
+      ti = _bigcounts.find(bin);
+      if (ti != _bigcounts.end()) {
+	max_count = ti->second;
+      }
+    }
+  }
+
+  for (unsigned int i = _ksize; i < length; i++) {
+    // left-shift the previous hash over
+    h = h << 2;
+
+    // 'or' in the current nt
+    h |= twobit_repr(sp[i]);
+
+    // mask off the 2 bits we shifted over.
+    h &= bitmask;
+
+    // now handle reverse complement
+    r = r >> 2;
+    r |= (twobit_comp(sp[i]) << (_ksize*2-2));
+
+    bin = uniqify_rc(h, r);
+    if (!bounded || (bin >= lower_bound && bin < upper_bound)) {
+      if (get_count(bin) >= MAX_COUNT) {
+	ti = _bigcounts.find(bin);
+	if (ti != _bigcounts.end()) {
+	  count = ti->second;
+	  if (count > max_count) {
+	    max_count = count;
+	  }
+	}
       }
     }
   }

@@ -180,6 +180,11 @@ namespace khmer {
 					  CallbackFn callback = NULL,
 					  void * callback_data = NULL);
 
+    unsigned int output_norepeats_fasta_file(const std::string &inputfile,
+					    const std::string &outputfile,
+					    CallbackFn callback = NULL,
+					    void * callback_data = NULL);
+
     void output_fasta_kmer_pos_freq(const std::string &inputfile,
                                     const std::string &outputfile);
 
@@ -190,6 +195,9 @@ namespace khmer {
     BoundedCounterType get_max_count(const std::string &s,
 				     HashIntoType lower_bound = 0,
 				     HashIntoType upper_bound = 0);
+    unsigned int get_max_bigcount(const std::string &s,
+				  HashIntoType lower_bound = 0,
+				  HashIntoType upper_bound = 0);
 
     HashIntoType * abundance_distribution() const;
 

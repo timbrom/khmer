@@ -1258,6 +1258,25 @@ static PyObject * hash_save(PyObject * self, PyObject * args)
   return Py_None;
 }
 
+static PyObject * hash_output_norepeats(PyObject * self, PyObject * args)
+{
+  khmer_KHashtableObject * me = (khmer_KHashtableObject *) self;
+  khmer::Hashtable * ht = me->hashtable;
+
+  char * filename = NULL;
+  char * output = NULL;
+  PyObject * callback_obj = NULL;
+
+  if (!PyArg_ParseTuple(args, "ss|O", &filename, &output, &callback_obj)) {
+    return NULL;
+  }
+
+  ht->output_norepeats_fasta_file(filename, output, _report_fn, callback_obj);
+
+  Py_INCREF(Py_None);
+  return Py_None;
+}
+
 static PyMethodDef khmer_hashtable_methods[] = {
   { "n_occupied", hash_n_occupied, METH_VARARGS, "Count the number of occupied bins" },
   { "n_entries", hash_n_entries, METH_VARARGS, "" },
@@ -1279,6 +1298,7 @@ static PyMethodDef khmer_hashtable_methods[] = {
   { "fasta_dump_kmers_by_abundance", hash_fasta_dump_kmers_by_abundance, METH_VARARGS, "" },
   { "load", hash_load, METH_VARARGS, "" },
   { "save", hash_save, METH_VARARGS, "" },
+  { "output_norepeats", hash_output_norepeats, METH_VARARGS, "" },
 
   {NULL, NULL, 0, NULL}           /* sentinel */
 };

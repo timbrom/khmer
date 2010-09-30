@@ -14,6 +14,7 @@ namespace khmer {
 					  CallbackFn callback = NULL,
 					  void * callback_data = NULL);
 
+
   class ReadMaskTable {
   protected:
     const unsigned int _tablesize;
