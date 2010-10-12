@@ -4,8 +4,8 @@ import glob
 
 K = 32
 
-filename=sys.argv[1]
-subset_filenames=sys.argv[2:]
+filenames=sys.argv[1:]
+subset_filenames=glob.glob('*.pmap')
 
 def load(filename, ht):
     pmap_filename = filename
@@ -27,6 +27,7 @@ for subset_file in subset_filenames:
     load(subset_file, ht)
 
 # partition!
-n_partitions = ht.output_partitions(filename, filename + '.part')
-print n_partitions
+for filename in filenames:
+    ht.output_partitions(filename, filename + '.part')
+
 print ht.count_partitions()

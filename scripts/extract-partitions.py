@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 import sys
 from screed.fasta import fasta_iter
+import os.path
 
 MAX_SIZE=500000
 THRESHOLD=1
@@ -22,7 +23,10 @@ def read_partition_file(fp):
             yield name, partition_id, surrendered, sequence
 
 
-(filename, prefix, distfilename) = sys.argv[1:]
+filenames = sys.argv[1:-2]
+prefix, distfilename = sys.argv[-2:]
+
+assert not os.path.exists(distfilename)
 
 distfp = open(distfilename, 'w')
 surrendered_exist = False
@@ -31,28 +35,30 @@ count = {}
 
 ###
 
-for n, (name, pid, surr, seq) in enumerate(read_partition_file(open(filename))):
-    if n % 10000 == 0:
-        print '...', n
+for filename in filenames:
+    for n, (name, pid, surr, seq) in enumerate(read_partition_file(open(filename))):
+        if n % 10000 == 0:
+            print '...', n
 
-    count[pid] = count.get(pid, 0) + 1
-    if surr:
-        surrendered_exist = True
+        count[pid] = count.get(pid, 0) + 1
+        if surr:
+            surrendered_exist = True
 
 # develop histogram of partition sizes
-dist = {}
-for n, (name, pid, surr, seq) in enumerate(read_partition_file(open(filename))):
-    if n % 10000 == 0:
-        print '...x2', n
+for filename in filenames:
+    dist = {}
+    for n, (name, pid, surr, seq) in enumerate(read_partition_file(open(filename))):
+        if n % 10000 == 0:
+            print '...x2', n
 
-    if pid not in count:
-        continue
-    
-    c = count[pid]
-    if pid == 0:
-        c = 0
+        if pid not in count:
+            continue
 
-    dist[c] = dist.get(c, 0) + 1
+        c = count[pid]
+        if pid == 0:
+            c = 0
+
+        dist[c] = dist.get(c, 0) + 1
 
 # output histogram
 total = 0
@@ -61,6 +67,8 @@ for c, n in sorted(dist.items()):
         n /= c
     total += n
     distfp.write('%d %d %d\n' % (c, n, total))
+
+distfp.close()
 
 # separate
 if 0 in count:
@@ -107,24 +115,25 @@ if surrendered_exist:
     surrendered_fp = open('%s.surrender.fa' % prefix, 'w')
 
 ## write 'em all out!
-fp = open(filename)
-for n, x in enumerate(read_partition_file(fp)):
-    if n % 100000 == 0:
-        print '...x3', n
+for filename in filenames:
+    fp = open(filename)
+    for n, x in enumerate(read_partition_file(fp)):
+        if n % 100000 == 0:
+            print '...x3', n
 
-    name, partition_id, surrendered, seq = x
-    if partition_id == 0:
-        continue
-    
-    if surrendered:
-        surrender_ch = '*'
-        outfp = surrendered_fp
-    else:
-        surrender_ch = ' '
-        try:
-            group_n = group_d[partition_id]
-        except KeyError:
+        name, partition_id, surrendered, seq = x
+        if partition_id == 0:
             continue
-        outfp = group_fps[group_n]
 
-    outfp.write('>%s\t%s%s\n%s\n' % (name, partition_id, surrender_ch, seq))
+        if surrendered:
+            surrender_ch = '*'
+            outfp = surrendered_fp
+        else:
+            surrender_ch = ' '
+            try:
+                group_n = group_d[partition_id]
+            except KeyError:
+                continue
+            outfp = group_fps[group_n]
+
+        outfp.write('>%s\t%s%s\n%s\n' % (name, partition_id, surrender_ch, seq))

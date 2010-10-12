@@ -3,11 +3,12 @@ import sys
 import screed
 
 K = 32
-HASHTABLE_SIZE=int(256e9)
-THRESHOLD=100
+HASHTABLE_SIZE=int(136e9)
+#HASHTABLE_SIZE=int(1e9)
+THRESHOLD=80
 
 print 'creating ht'
-ht = khmer.new_hashbits(K, HASHTABLE_SIZE, 2)
+ht = khmer.new_hashbits(K, HASHTABLE_SIZE, 4)
 
 for filename in sys.argv[1:]:
     print 'eating fa', filename

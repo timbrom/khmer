@@ -5,10 +5,10 @@ import gc
 import os.path
 
 K=32
-HASHTABLE_SIZE=int(32e9)
+HASHTABLE_SIZE=int(96e9)
 
-SUBSET_SIZE = 1000000
-N_THREADS = 4
+SUBSET_SIZE = 5000000
+N_THREADS = 8
 
 ht = khmer.new_hashbits(K, HASHTABLE_SIZE, 4)
 
@@ -43,8 +43,8 @@ def worker(q, basename):
         del subset
         gc.collect()
 
-def main(filename):
-    basename = os.path.basename(filename)
+def main(filenames):
+    basename = os.path.basename(filenames[0])
 
     print 'K', K
     print 'HASHTABLE SIZE %g' % HASHTABLE_SIZE
@@ -53,9 +53,9 @@ def main(filename):
     print '--'
 
     # populate the hash table and tag set
-    print 'reading sequences and loading tagset from %s...' % (filename,)
-    #ht.do_threaded_partition(filename)
-    ht.consume_fasta_and_tag(filename)
+    for filename in filenames:
+       print 'reading sequences and loading tagset from %s...' % (filename,)
+       ht.consume_fasta_and_tag(filename)
 
     # save to a file (optional)
     print 'saving...'
@@ -98,4 +98,4 @@ def main(filename):
     print 'done! see %s.subset.*.pmap' % (basename,)
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    main(sys.argv[1:])

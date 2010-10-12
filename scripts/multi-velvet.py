@@ -6,6 +6,7 @@ import subprocess
 
 #COMMAND="velvetg %(filename)s.ass -read_trkg yes -exp_cov 3 -cov_cutoff 0 -min_contig_lgth 1000"
 COMMAND="/root/khmer/velvet-assemble.sh %(filename)s 31"
+#COMMAND="/root/khmer/scripts/velvet-assemble-pe.sh %(filename)s 31"
 
 
 N_PROCESSES = 8
