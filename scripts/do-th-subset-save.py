@@ -5,7 +5,7 @@ import gc
 import os.path
 
 K=32
-HASHTABLE_SIZE=int(96e9)
+HASHTABLE_SIZE=int(56e9)
 
 SUBSET_SIZE = 5000000
 N_THREADS = 8
@@ -66,6 +66,9 @@ def main(filenames):
     # calculate the hashtable occupancy
     print '---'
     print 'hashtable occupancy:', ht.n_occupied() / float(HASHTABLE_SIZE)
+    o = open('stats.txt', 'w')
+    print >>o, 'hashtable occupancy:', ht.n_occupied() / float(HASHTABLE_SIZE)
+    o.close()
     print '---'
 
     # divide the tags up into subsets
