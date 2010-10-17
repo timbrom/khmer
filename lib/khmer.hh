@@ -1,8 +1,10 @@
 #define VERSION "0.3"
 
 #define MAX_COUNT 255
-#define TAG_DENSITY 10
-#define CONNECTED_THRESHOLD 2
+#define TAG_DENSITY 90
+#define CONNECTED_THRESHOLD 0		// disable
+// #define TAG_DENSITY 10  		// mRNA
+// #define CONNECTED_THRESHOLD 2	// mRNA
 
 namespace khmer {
   // largest number we can count up to, exactly. (8 bytes)
