@@ -2,7 +2,7 @@ import sys, screed.fasta, os
 import khmer
 
 K = 32
-HASHTABLE_SIZE=int(8e9)
+HASHTABLE_SIZE=int(48e9)
 N_HT = 4
 
 ###

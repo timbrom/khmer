@@ -3,8 +3,8 @@ import sys
 
 import khmer
 
-KSIZE=20
-HASHTABLE_SIZE=int(2e9)
+KSIZE=32
+HASHTABLE_SIZE=int(16e9)
 MIN_ABUNDANCE=255
 
 infilename = sys.argv[1]

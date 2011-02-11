@@ -5,7 +5,7 @@ from screed.fasta import fasta_iter
 import khmer
 
 K = 32
-HASHTABLE_SIZE=int(1e9)
+HASHTABLE_SIZE=int(8e9)
 N_HT = 4
 
 infile = sys.argv[1]

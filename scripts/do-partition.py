@@ -5,10 +5,10 @@ import gc
 import os.path
 
 K=32
-HASHTABLE_SIZE=int(8e9)
+HASHTABLE_SIZE=int(48e9)
 N_HT=4
 
-SUBSET_SIZE = int(2e5)
+SUBSET_SIZE = int(5e5)
 N_THREADS = 8
 
 ht = None
