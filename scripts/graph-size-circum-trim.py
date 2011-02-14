@@ -5,8 +5,8 @@ import os.path
 import threading, Queue
 
 K = 32
-HASHTABLE_SIZE=int(4e9)
-THRESHOLD=100
+HASHTABLE_SIZE=int(48e9)
+THRESHOLD=200
 N_HT=4
 
 ###
@@ -20,7 +20,7 @@ incr = 2*RADIUS
 ###
 
 GROUPSIZE=5
-WORKER_THREADS=4
+WORKER_THREADS=8
 
 ###
 
