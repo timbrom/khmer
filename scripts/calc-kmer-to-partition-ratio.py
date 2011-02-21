@@ -4,7 +4,7 @@ import khmer
 from screed.fasta import fasta_iter
 
 K = 32
-HASHTABLE_SIZE=int(8e9)
+HASHTABLE_SIZE=int(96e9)
 N_HASHTABLES=4
 
 total_kmers = 0
