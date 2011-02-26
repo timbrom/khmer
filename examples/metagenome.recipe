@@ -1,0 +1,7 @@
+# provide some way to override settings in the .cfg file?
+
+graphtrim_reads
+graphsize_filter size=500
+partition
+extract_partitions reads_per_partition=10
+velvet_assemble_groups
