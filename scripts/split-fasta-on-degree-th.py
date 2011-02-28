@@ -1,10 +1,10 @@
-import sys, screed.fasta, os
+import sys, screed.fastq, os
 import khmer
 import threading, Queue
 import gc
 
 K = 31                                  # use K-1 for assembly K
-HASHTABLE_SIZE=int(4e9)
+HASHTABLE_SIZE=int(20e9)
 N_HT = 4
 
 ###
@@ -13,7 +13,7 @@ MAX_DEGREE=4
 
 ###
 
-WORKER_THREADS=8
+WORKER_THREADS=4
 GROUPSIZE=100
 
 class SequenceGroup(object):
@@ -59,20 +59,8 @@ def write(outq, outfp):
         except Queue.Empty:
             continue
 
-        groups[g.order] = g
-
-        while next_group in groups:
-            g = groups[next_group]
-            for name, seq in g.seqlist:
-                outfp.write('>%s\n%s\n' % (name, seq,))
-
-            del groups[next_group]
-            next_group += 1
-
-            gc.collect()
-
-        if len(groups) > 20:
-            print 'WAITAMINIT: len(groups) is', len(groups)
+        for name, seq in g.seqlist:
+            outfp.write('>%s\n%s\n' % (name, seq,))
 
 def main():
     global ht, done, worker_count
@@ -113,8 +101,7 @@ def main():
     x = []
     i = 0
     group_n = 0
-    for n, record in enumerate(screed.fasta.fasta_iter(open(infile),
-                                                       parse_description=False)):
+    for n, record in enumerate(screed.fastq.fastq_iter(open(infile))):
         if n % 10000 == 0:
             print '...', n
 

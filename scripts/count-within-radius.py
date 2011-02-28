@@ -2,13 +2,13 @@ import sys, screed.fasta, os
 import khmer
 
 K = 32
-HASHTABLE_SIZE=int(8e9)
+HASHTABLE_SIZE=int(32e9)
 N_HT = 4
 RADIUS=100
 
 ###
 
-MAX_DENSITY=2000
+MAX_DENSITY=100000
 
 infile = sys.argv[1]
 outfile = sys.argv[2]
@@ -27,6 +27,9 @@ outfp = open(outfile, 'w')
 for n, record in enumerate(screed.fasta.fasta_iter(open(infile))):
     if n % 10000 == 0:
         print '... saving', n
+    if n > 20000:
+        break
+
     seq = record['sequence']
 
     middle = (len(seq) - K + 1) / 2
