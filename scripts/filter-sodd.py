@@ -2,10 +2,10 @@ import sys, screed.fasta, os
 import khmer
 from khmer.thread_utils import ThreadedSequenceProcessor, verbose_fasta_iter
 
-K = 31                                  # use K-1 for part/assembly with K
+K = 32
 HASHTABLE_SIZE=int(4e9)
 N_HT = 4
-MAX_DEGREE=3
+MAX_SODD=3
 
 WORKER_THREADS=8
 GROUPSIZE=100
@@ -30,7 +30,7 @@ def main():
     print 'HASHTABLE SIZE %g' % HASHTABLE_SIZE
     print 'N HASHTABLES %d' % N_HT
     print 'N THREADS', WORKER_THREADS
-    print 'MAX DEGREE', MAX_DEGREE
+    print 'MAX DEGREE', MAX_SODD
     print '--'
 
     print 'making hashtable'
@@ -44,7 +44,7 @@ def main():
     def process_fn(record, ht=ht):
         name = record['name']
         seq = record['sequence']
-        trim_seq, trim_at = ht.trim_on_degree(seq, MAX_DEGREE)
+        trim_seq, trim_at = ht.trim_on_sodd(seq, MAX_SODD)
 
         if trim_at > K:
             return name, trim_seq
