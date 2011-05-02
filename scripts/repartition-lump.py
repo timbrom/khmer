@@ -57,17 +57,28 @@ for subset_file in subset_filenames:
                                      EXCURSION_DISTANCE,
                                      EXCURSION_KMER_THRESHOLD,
                                      EXCURSION_KMER_COUNT_THRESHOLD)
+
+    ht.save_subset_partitionmap(subset, subset_file + '.repart')
+
+print 'saving stoptags binary'
+ht.save_stop_tags(basename + '.stoptags')
     
-    print '** merging subset... %s' % subset_file
+for subset_file in subset_filenames:
+    print '<- 2', subset_file + '.repart'
+    subset = ht.load_subset_partitionmap(subset_file + '.repart')
+    
+    print '** merging subset... %s.repart' % subset_file 
     ht.merge_subset(subset)
     
-    print '** repartitioning, round 2... %s' % subset_file
-    size = ht.repartition_largest_partition(None, counting,
-                                            EXCURSION_DISTANCE,
-                                            EXCURSION_KMER_THRESHOLD,
-                                            EXCURSION_KMER_COUNT_THRESHOLD)
+print '** repartitioning, round 2... %s' % subset_file
+size = ht.repartition_largest_partition(None, counting,
+                                        EXCURSION_DISTANCE,
+                                        EXCURSION_KMER_THRESHOLD,
+                                        EXCURSION_KMER_COUNT_THRESHOLD)
 
-    print '** repartitioned size:', size
+print '** repartitioned size:', size
 
-    print 'saving stoptags binary'
-    ht.save_stop_tags(basename + '.stoptags')
+ht.save_partitionmap(basename + '.repart.merged')
+
+print 'saving stoptags binary'
+ht.save_stop_tags(basename + '.stoptags')

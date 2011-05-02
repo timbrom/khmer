@@ -858,7 +858,7 @@ unsigned int SubsetPartition::repartition_largest_partition(unsigned int distanc
 
   std::cout << "calculating partition size distribution.\n";
 
-  // first, count the number of members in each partition.
+  // count the number of members in each partition.
   for (PartitionMap::const_iterator pi = partition_map.begin();
        pi != partition_map.end(); pi++) {
     if (pi->second) {
@@ -868,39 +868,32 @@ unsigned int SubsetPartition::repartition_largest_partition(unsigned int distanc
     }
   }
 
-  // then, build the distribution.
-  PartitionCountDistribution d;
-
-  for (PartitionCountMap::const_iterator cmi = cm.begin(); cmi != cm.end();
-       cmi++) {
-    d[cmi->second]++;
-  }
-
-  // find biggest.
-  PartitionCountDistribution::const_iterator di = d.end();
-  di--;
-
-  assert(d.size());
-
-  for (PartitionCountMap::const_iterator cmi = cm.begin(); cmi != cm.end();
-       cmi++) {
-    if (cmi->second == di->first) {
-      biggest_p = cmi->first;	// find PID of largest partition
-    }
-  }
-  assert(biggest_p != 0);
-
-  std::cout << "biggest partition: " << di->first << "\n";
-  di--;
-  std::cout << "biggest partition ID: " << biggest_p << "\n";
-
-  next_largest = di->first;
-  std::cout << "next biggest partition: " << di->first << "\n";
-
   ///
 
   SeenSet bigtags;
-  _clear_partition(biggest_p, bigtags);
+  const unsigned int MAX_PSIZE=100;
+
+  for (PartitionMap::iterator pi = partition_map.begin();
+       pi != partition_map.end(); pi++) {
+    if (cm[*(pi->second)] >= MAX_PSIZE) {
+      bigtags.insert(pi->first);
+      pi->second = NULL;	// clear partition pointer if psize > MAX
+    }
+  }
+
+  for (PartitionCountMap::iterator ci = cm.begin(); ci != cm.end(); ci++) {
+    if (ci->second >= MAX_PSIZE) {
+      PartitionPtrSet * ps = reverse_pmap[ci->first];
+      assert(ps);
+      for (PartitionPtrSet::iterator psi = ps->begin();
+	   psi != ps->end(); psi++) {
+	delete *psi;
+      }
+      delete ps;
+      reverse_pmap.erase(ci->first);
+    }
+  }
+
   std::cout << "gathered/cleared " << bigtags.size() << " tags.\n";
 
   /// Now, go through and traverse from all the bigtags, tracking
