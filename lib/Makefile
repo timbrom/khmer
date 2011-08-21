@@ -1,6 +1,7 @@
 CXX=g++
 NO_UNIQUE_RC=0
-CXXFLAGS=-03 -m64 -Wall -DNO_UNIQUE_RC=$(NO_UNIQUE_RC)
+# -m64
+CXXFLAGS=-fPIC -Wall -DNO_UNIQUE_RC=$(NO_UNIQUE_RC)
 
 # comment out whichever is appropriate.  can probably make this automatic ;)
 SO_EXT=.so
