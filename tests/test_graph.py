@@ -175,6 +175,40 @@ class Test_InexactGraphFu(object):
 ###
 
 class Test_Partitioning(object):
+    def test_output_unassigned(self):
+        import screed
+
+        filename = os.path.join(thisdir, 'test-data/random-20-a.fa')
+
+        ht = khmer.new_hashbits(21, 1e6, 4)
+        ht.consume_fasta_and_tag(filename)
+
+        output_file = filename + '.part0test'
+        ht.output_partitions(filename, output_file, True)
+
+        len1 = len(list(screed.open(filename)))
+        len2 = len(list(screed.open(output_file)))
+
+        assert len1 > 0
+        assert len1 == len2, (len1, len2)
+
+    def test_not_output_unassigned(self):
+        import screed
+
+        filename = os.path.join(thisdir, 'test-data/random-20-a.fa')
+
+        ht = khmer.new_hashbits(21, 1e6, 4)
+        ht.consume_fasta_and_tag(filename)
+
+        output_file = filename + '.parttest'
+        ht.output_partitions(filename, output_file, False)
+
+        len1 = len(list(screed.open(filename)))
+        len2 = len(list(screed.open(output_file)))
+
+        assert len1 > 0
+        assert len2 == 0, len2
+
     def test_disconnected_20_a(self):
         filename = os.path.join(thisdir, 'test-data/random-20-a.fa')
 
@@ -183,7 +217,7 @@ class Test_Partitioning(object):
 
         subset = ht.do_subset_partition(0, 0)
         x = ht.subset_count_partitions(subset)
-        assert x == (99, 0)             # disconnected @ 21
+        assert x == (99, 0), x             # disconnected @ 21
 
     def test_connected_20_a(self):
         filename = os.path.join(thisdir, 'test-data/random-20-a.fa')
@@ -203,7 +237,7 @@ class Test_Partitioning(object):
 
         subset = ht.do_subset_partition(0, 0)
         x = ht.subset_count_partitions(subset)
-        assert x == (99, 0)             # disconnected @ 21
+        assert x == (99, 0), x             # disconnected @ 21
 
     def test_connected_20_b(self):
         filename = os.path.join(thisdir, 'test-data/random-20-b.fa')
@@ -223,7 +257,7 @@ class Test_Partitioning(object):
 
         subset = ht.do_subset_partition(0, 0)
         x = ht.subset_count_partitions(subset)
-        assert x == (999, 0)            # disconnected @ K = 32
+        assert x == (999, 0), x            # disconnected @ K = 32
 
     def test_connected_31_c(self):
         filename = os.path.join(thisdir, 'test-data/random-31-c.fa')

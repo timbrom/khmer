@@ -5,7 +5,17 @@
 #include "hashtable.hh"
 #include "subset.hh"
 
+#define next_f(kmer_f, ch) ((((kmer_f) << 2) & bitmask) | (twobit_repr(ch)))
+#define next_r(kmer_r, ch) (((kmer_r) >> 2) | (twobit_comp(ch) << rc_left_shift))
+
+#define prev_f(kmer_f, ch) ((kmer_f) >> 2 | twobit_repr(ch) << rc_left_shift)
+#define prev_r(kmer_r, ch) ((((kmer_r) << 2) & bitmask) | (twobit_comp(ch)))
+
+#define set_contains(s, e) ((s).find(e) != (s).end())
+
 namespace khmer {
+  class CountingHash;
+
   class Hashbits : public khmer::Hashtable {
     friend class SubsetPartition;
   protected:
@@ -16,7 +26,6 @@ namespace khmer {
     HashIntoType _n_unique_kmers;
 
     Byte ** _counts;
-    SeenSet all_tags;
 
     virtual void _allocate_counters() {
       _n_tables = _tablesizes.size();
@@ -35,14 +44,17 @@ namespace khmer {
       }
     }
 
-    void _clear_partitions() {
+    void _clear_all_partitions() {
       if (partition != NULL) {
-        partition->_clear_partitions();
+        partition->_clear_all_partitions();
       }
     }
 
   public:
     SubsetPartition * partition;
+    SeenSet all_tags;
+    SeenSet stop_tags;
+    SeenSet repart_small_tags;
 
     void _validate_pmap() {
       if (partition) { partition->_validate_pmap(); }
@@ -50,7 +62,7 @@ namespace khmer {
 
     Hashbits(WordLength ksize, std::vector<HashIntoType>& tablesizes) :
       khmer::Hashtable(ksize), _tablesizes(tablesizes) {
-      _tag_density = TAG_DENSITY;
+      _tag_density = DEFAULT_TAG_DENSITY;
       assert(_tag_density % 2 == 0);
       partition = new SubsetPartition(this);
       _occupied_bins = 0;
@@ -71,13 +83,31 @@ namespace khmer {
         _n_tables = 0;
       }
 
-      _clear_partitions();
+      _clear_all_partitions();
+    }
+
+    std::vector<HashIntoType> get_tablesizes() const {
+      return _tablesizes;
     }
 
     virtual void save(std::string);
     virtual void load(std::string);
     virtual void save_tagset(std::string);
-    virtual void load_tagset(std::string);
+    virtual void load_tagset(std::string, bool clear_tags=true);
+
+    // for debugging/testing purposes only!
+    void _set_tag_density(unsigned int d) {
+      assert(d % 2 == 0);	// must be even
+      assert(all_tags.size() == 0); // no tags exist!
+      _tag_density = d;
+    }
+
+    unsigned int _get_tag_density() const {
+      return _tag_density;
+    }
+
+    void add_tag(HashIntoType tag) { all_tags.insert(tag); }
+    void add_stop_tag(HashIntoType tag) { stop_tags.insert(tag); }
 
     void calc_connected_graph_size(const char * kmer,
 				   unsigned long long& count,
@@ -115,6 +145,18 @@ namespace khmer {
 			       unsigned long long &n_consumed,
 			       CallbackFn callback = 0,
 			       void * callback_data = 0);
+
+    void consume_fasta_and_tag_with_stoptags(const std::string &filename,
+					     unsigned int &total_reads,
+					     unsigned long long &n_consumed,
+					     CallbackFn callback = 0,
+					     void * callback_data = 0);
+
+    void consume_fasta_and_traverse(const std::string &filename,
+				    unsigned int distance,
+				    unsigned int big_threshold,
+				    unsigned int transfer_threshold,
+				    CountingHash &counting);
 
     void consume_partitioned_fasta(const std::string &filename,
 				   unsigned int &total_reads,
@@ -193,7 +235,14 @@ namespace khmer {
     unsigned int count_kmers_within_radius(HashIntoType kmer_f,
 					   HashIntoType kmer_r,
 					   unsigned int radius,
-					   unsigned int max_count) const;
+					   unsigned int max_count,
+					   const SeenSet * seen=0) const;
+    unsigned int count_kmers_within_depth(HashIntoType kmer_f,
+					  HashIntoType kmer_r,
+					  unsigned int depth,
+					  unsigned int max_count,
+					  SeenSet * seen) const;
+
     unsigned int find_radius_for_volume(HashIntoType kmer_f,
 					HashIntoType kmer_r,
 					unsigned int max_count,
@@ -208,7 +257,45 @@ namespace khmer {
       const;
     unsigned int trim_on_sodd(std::string sequence, unsigned int max_degree)
       const;
+
+    unsigned int trim_on_density_explosion(std::string sequence, unsigned int radius, unsigned int max_volume)
+      const;
+
+    unsigned int trim_on_stoptags(std::string sequence) const;
+
+    void traverse_from_tags(unsigned int distance,
+			    unsigned int threshold,
+			    unsigned int num_high_todo,
+			    CountingHash &counting);
+
+    unsigned int traverse_from_kmer(HashIntoType start,
+				    unsigned int radius,
+				    SeenSet &keeper) const;
+
+    unsigned int count_and_transfer_to_stoptags(SeenSet &keeper,
+						unsigned int threshold,
+						CountingHash &counting);
+
+    void traverse_from_reads(std::string filename,
+			     unsigned int radius,
+			     unsigned int big_threshold,
+			     unsigned int transfer_threshold,
+			     CountingHash &counting);
+
+    void hitraverse_to_stoptags(std::string filename,
+				CountingHash &counting,
+				unsigned int cutoff);
+
+    virtual void print_stop_tags(std::string);
+    virtual void save_stop_tags(std::string);
+    void load_stop_tags(std::string filename, bool clear_tags=true);
+
+    void identify_stop_tags_by_position(std::string sequence,
+					std::vector<unsigned int> &posns)
+      const;
   };
 };
+
+#include "counting.hh"
 
 #endif // HASHBITS_HH
