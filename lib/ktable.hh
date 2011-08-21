@@ -18,8 +18,8 @@
 
 // bit representation of A/T/C/G.
 #define twobit_repr(ch) ((toupper(ch)) == 'A' ? 0LL : \
-                         (toupper(ch)) == 'C' ? 1LL : \
-                         (toupper(ch)) == 'G' ? 2LL : 3LL)
+                         (toupper(ch)) == 'T' ? 1LL : \
+                         (toupper(ch)) == 'C' ? 2LL : 3LL)
 
 #define revtwobit_repr(n) ((n) == 0 ? 'A' : \
                            (n) == 1 ? 'C' : \
@@ -27,9 +27,9 @@
 
 #define compl_twobit(n) ((~n & 3))
 
-#define twobit_comp(ch) ((toupper(ch)) == 'A' ? 3LL : \
+#define twobit_comp(ch) ((toupper(ch)) == 'A' ? 1LL : \
                          (toupper(ch)) == 'T' ? 0LL : \
-                         (toupper(ch)) == 'C' ? 2LL : 1LL)
+                         (toupper(ch)) == 'C' ? 3LL : 2LL)
 
 // choose wisely between forward and rev comp.
 #if !NO_UNIQUE_RC
