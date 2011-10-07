@@ -106,7 +106,10 @@ namespace khmer {
 	const HashIntoType bin = khash % _tablesizes[i];
 
 	if (_counts[i][bin] < MAX_COUNT) {
-	  _counts[i][bin] += 1;
+          register HashIntoType oldnum;
+          do {
+            oldnum = _counts[i][bin];
+          } while(!__sync_bool_compare_and_swap(&(_counts[i][bin]), oldnum, oldnum+1));
 	} else {
 	  n_full++;
 	}

@@ -1,5 +1,5 @@
 NO_UNIQUE_RC=0
-CXXFLAGS=--g -fPIC -Wall -O2 -DNO_UNIQUE_RC=$(NO_UNIQUE_RC)
+CXXFLAGS=-g -fPIC -Wall -O2 -DNO_UNIQUE_RC=$(NO_UNIQUE_RC)
 
 # comment out whichever is appropriate.  can probably make this automatic ;)
 SO_EXT=.so

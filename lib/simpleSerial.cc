@@ -65,7 +65,7 @@ int main(int argc, char **argv)
     CountingHash h(K, tableSizes);
 
     /* Start parsing the fasta file */
-    FastqParser p(argv[1]);
+    IParser* p = IParser::get_parser(argv[1]);
     Read r;
     BoundedCounterType medCount;
     float meanCount;
@@ -75,16 +75,16 @@ int main(int argc, char **argv)
     numReads = 0;
     numKeptReads = 0;
     int numThousands = 1;
-    int numZeroCount;
+    int numZeroCount = 0;
     unsigned long long avgMedCount = 0;
 
     printf("ID\tNumKept  \tNumRead  \tNumZeroMed\tavgMedCnt\thtOccupancy\n");
 
-    while (!p.is_complete())
+    while (!p->is_complete())
     {
         numReads++;
         totalCount++;
-        r = p.get_next_read();
+        r = p->get_next_read();
         h.get_median_count(r.seq, medCount, meanCount, stdDev);
         avgMedCount += medCount;
         if (medCount < MAX_MEDIAN_COUNT)
@@ -107,10 +107,9 @@ int main(int argc, char **argv)
 
         if (numReads == 1000000)
         {
-            printf("%-4d\t%-10d\t%-10d\t%-10d\t%-10.2lf\t%-10lf\n", numThousands, 
+            printf("%-4d\t%-10d\t%-10d\t%-10d\t%-10.2lf\t\n", numThousands, 
                 numKeptReads, numReads, numZeroCount, 
-                (double)avgMedCount / (double)numReads,
-                (double)h.n_occupied() / TABLE_SIZE);
+                (double)avgMedCount / (double)numReads);
             numThousands++;
             numKeptReads = numReads = numZeroCount = avgMedCount = 0;
         }
