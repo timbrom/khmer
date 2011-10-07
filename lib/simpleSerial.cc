@@ -65,7 +65,7 @@ int main(int argc, char **argv)
     CountingHash h(K, tableSizes);
 
     /* Start parsing the fasta file */
-    FastaParser p(argv[1]);
+    FastqParser p(argv[1]);
     Read r;
     BoundedCounterType medCount;
     float meanCount;
