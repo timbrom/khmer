@@ -66,10 +66,6 @@ int main(int argc, char **argv)
 
     /* Start parsing the fasta file */
     IParser* p = IParser::get_parser(argv[1]);
-    Read r;
-    BoundedCounterType medCount;
-    float meanCount;
-    float stdDev;
     long long unsigned int totalCount = 0, keptCount = 0;
 
     numReads = 0;
@@ -80,19 +76,36 @@ int main(int argc, char **argv)
 
     printf("ID\tNumKept  \tNumRead  \tNumZeroMed\tavgMedCnt\thtOccupancy\n");
 
+    #pragma omp parallel reduction(+:totalCount,keptCount)
     while (!p->is_complete())
     {
-        numReads++;
-        totalCount++;
-        r = p->get_next_read();
+        /*numReads++;*/
+        Read r;
+        BoundedCounterType medCount;
+        float meanCount;
+        float stdDev;
+        bool shouldExit = false;
+
+        #pragma omp critical
+        {
+            if (!p->is_complete())
+            {
+                r = p->get_next_read();
+                totalCount++;
+            }
+            else
+                shouldExit = true;
+        }
+        if (shouldExit)
+            break;
         h.get_median_count(r.seq, medCount, meanCount, stdDev);
-        avgMedCount += medCount;
+        //avgMedCount += medCount;
         if (medCount < MAX_MEDIAN_COUNT)
         {
             keptCount++;
-            numKeptReads++;
-            if (medCount == 0)
-                numZeroCount++;
+            //numKeptReads++;
+            //if (medCount == 0)
+              //  numZeroCount++;
             /* Count it */
             KMerIterator kmers(r.seq.c_str(), K);
             while(!kmers.done())
@@ -100,19 +113,19 @@ int main(int argc, char **argv)
                 h.count(kmers.next());
             }
 
-            /* Save it to an output file */
+            /* Save it to an output file 
             outFile << ">" << r.name << endl;
-            outFile << r.seq << endl;
+            outFile << r.seq << endl;*/
         }
 
-        if (numReads == 1000000)
+    /*    if (numReads == 1000000)
         {
             printf("%-4d\t%-10d\t%-10d\t%-10d\t%-10.2lf\t\n", numThousands, 
                 numKeptReads, numReads, numZeroCount, 
                 (double)avgMedCount / (double)numReads);
             numThousands++;
             numKeptReads = numReads = numZeroCount = avgMedCount = 0;
-        }
+        }*/
     }
 
     outFile.close();

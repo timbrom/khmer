@@ -1,5 +1,5 @@
 NO_UNIQUE_RC=0
-CXXFLAGS=-g -fPIC -Wall -O2 -DNO_UNIQUE_RC=$(NO_UNIQUE_RC)
+CXXFLAGS=-g -fPIC -Wall -O3 -DNO_UNIQUE_RC=$(NO_UNIQUE_RC)
 
 # comment out whichever is appropriate.  can probably make this automatic ;)
 SO_EXT=.so
@@ -20,7 +20,7 @@ $(Z_LIB_DIR)/libz$(SO_EXT).1.2.3$(DYLIB_EXT):
 	cd $(Z_LIB_DIR); ./configure --shared; make; rm minigzip.o; rm example.o
 
 simpleSerial: parsers.o counting.o hashtable.o ktable.o zlib
-	$(CXX) $(CXXFLAGS) -o simpleSerial simpleSerial.cc parsers.o counting.o hashtable.o ktable.o $(Z_LIB_FILES)
+	$(CXX) $(CXXFLAGS) -o simpleSerial simpleSerial.cc parsers.o counting.o hashtable.o ktable.o $(Z_LIB_FILES) -fopenmp
 
 parsetest: parsers.o 
 	$(CXX) -o parsers parsers.o $(Z_LIB_FILES)
