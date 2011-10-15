@@ -22,6 +22,7 @@ using namespace khmer;
 
 #define MAX_MEDIAN_COUNT 10 /* Only count if the median is < this */
 #define TABLE_SIZE 2000000000
+#define READS_PER_THREAD 1000
 
 /* Forward Declarations */
 
@@ -70,11 +71,6 @@ int main(int argc, char **argv)
 
     numReads = 0;
     numKeptReads = 0;
-    int numThousands = 1;
-    int numZeroCount = 0;
-    unsigned long long avgMedCount = 0;
-
-    printf("ID\tNumKept  \tNumRead  \tNumZeroMed\tavgMedCnt\thtOccupancy\n");
 
     #pragma omp parallel reduction(+:totalCount,keptCount)
     while (!p->is_complete())
@@ -84,38 +80,40 @@ int main(int argc, char **argv)
         BoundedCounterType medCount;
         float meanCount;
         float stdDev;
-        bool shouldExit = false;
+        string reads[READS_PER_THREAD];
+        int readCount;
 
         #pragma omp critical
         {
-            if (!p->is_complete())
+            for (readCount = 0; readCount < READS_PER_THREAD && !p->is_complete(); readCount++)
             {
                 r = p->get_next_read();
+                reads[readCount] = r.seq;
                 totalCount++;
             }
-            else
-                shouldExit = true;
         }
-        if (shouldExit)
-            break;
-        h.get_median_count(r.seq, medCount, meanCount, stdDev);
-        //avgMedCount += medCount;
-        if (medCount < MAX_MEDIAN_COUNT)
-        {
-            keptCount++;
-            //numKeptReads++;
-            //if (medCount == 0)
-              //  numZeroCount++;
-            /* Count it */
-            KMerIterator kmers(r.seq.c_str(), K);
-            while(!kmers.done())
-            {
-                h.count(kmers.next());
-            }
 
-            /* Save it to an output file 
-            outFile << ">" << r.name << endl;
-            outFile << r.seq << endl;*/
+        for (int i = 0; i < readCount; i++)
+        {
+            h.get_median_count(reads[i], medCount, meanCount, stdDev);
+            //avgMedCount += medCount;
+            if (medCount < MAX_MEDIAN_COUNT)
+            {
+                keptCount++;
+                //numKeptReads++;
+                //if (medCount == 0)
+                  //  numZeroCount++;
+                /* Count it */
+                KMerIterator kmers(reads[i].c_str(), K);
+                while(!kmers.done())
+                {
+                    h.count(kmers.next());
+                }
+
+                /* Save it to an output file 
+                outFile << ">" << r.name << endl;
+                outFile << r.seq << endl;*/
+            }
         }
 
     /*    if (numReads == 1000000)
