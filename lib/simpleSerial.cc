@@ -22,15 +22,11 @@ using namespace khmer;
 
 #define MAX_MEDIAN_COUNT 10 /* Only count if the median is < this */
 #define TABLE_SIZE 2000000000
-#define READS_PER_THREAD 1000
 
 /* Forward Declarations */
 
 int main(int argc, char **argv)
 {
-    int numReads;
-    int numKeptReads;
-
     /* Check commandline arguments */
     if (argc != 4)
     {
@@ -69,61 +65,45 @@ int main(int argc, char **argv)
     IParser* p = IParser::get_parser(argv[1]);
     long long unsigned int totalCount = 0, keptCount = 0;
 
-    numReads = 0;
-    numKeptReads = 0;
-
     #pragma omp parallel reduction(+:totalCount,keptCount)
     while (!p->is_complete())
     {
-        /*numReads++;*/
         Read r;
         BoundedCounterType medCount;
         float meanCount;
         float stdDev;
-        string reads[READS_PER_THREAD];
-        int readCount;
-
+        bool shouldExit = false;
         #pragma omp critical
         {
-            for (readCount = 0; readCount < READS_PER_THREAD && !p->is_complete(); readCount++)
+            if (!p->is_complete())
             {
                 r = p->get_next_read();
-                reads[readCount] = r.seq;
                 totalCount++;
             }
-        }
-
-        for (int i = 0; i < readCount; i++)
-        {
-            h.get_median_count(reads[i], medCount, meanCount, stdDev);
-            //avgMedCount += medCount;
-            if (medCount < MAX_MEDIAN_COUNT)
+            else
             {
-                keptCount++;
-                //numKeptReads++;
-                //if (medCount == 0)
-                  //  numZeroCount++;
-                /* Count it */
-                KMerIterator kmers(reads[i].c_str(), K);
-                while(!kmers.done())
-                {
-                    h.count(kmers.next());
-                }
-
-                /* Save it to an output file 
-                outFile << ">" << r.name << endl;
-                outFile << r.seq << endl;*/
+                shouldExit = true;
             }
         }
 
-    /*    if (numReads == 1000000)
+        if (shouldExit)
+            break;
+
+        h.get_median_count(r.seq, medCount, meanCount, stdDev);
+        if (medCount < MAX_MEDIAN_COUNT)
         {
-            printf("%-4d\t%-10d\t%-10d\t%-10d\t%-10.2lf\t\n", numThousands, 
-                numKeptReads, numReads, numZeroCount, 
-                (double)avgMedCount / (double)numReads);
-            numThousands++;
-            numKeptReads = numReads = numZeroCount = avgMedCount = 0;
-        }*/
+            keptCount++;
+            /* Count it */
+            KMerIterator kmers(r.seq.c_str(), K);
+            while(!kmers.done())
+            {
+                h.count(kmers.next());
+            }
+
+            /* Save it to an output file 
+            outFile << ">" << r.name << endl;
+            outFile << r.seq << endl;*/
+        }
     }
 
     outFile.close();
