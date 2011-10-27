@@ -10,7 +10,7 @@ Z_LIB_FILES=$(Z_LIB_DIR)/*.o
 all: zlib parsers.o ktable.o hashtable.o hashbits.o subset.o counting.o
 
 clean:
-	rm -f *.o $(Z_LIB_DIR)/*.o $(Z_LIB_DIR)/libz$(SO_EXT).1.2.3$(DYLIB_EXT) simpleSerial
+	rm -f *.o $(Z_LIB_DIR)/*.o $(Z_LIB_DIR)/libz$(SO_EXT).1.2.3$(DYLIB_EXT) smpFiltering
 
 #test: test.cc ktable.o hashtable.o
 
@@ -19,8 +19,8 @@ zlib: $(Z_LIB_DIR)/libz$(SO_EXT).1.2.3$(DYLIB_EXT)
 $(Z_LIB_DIR)/libz$(SO_EXT).1.2.3$(DYLIB_EXT):
 	cd $(Z_LIB_DIR); ./configure --shared; make; rm minigzip.o; rm example.o
 
-simpleSerial: parsers.o counting.o hashtable.o ktable.o zlib
-	$(CXX) $(CXXFLAGS) -o simpleSerial simpleSerial.cc parsers.o counting.o hashtable.o ktable.o $(Z_LIB_FILES) -fopenmp
+smpFiltering: parsers.o counting.o hashtable.o ktable.o zlib
+	$(CXX) $(CXXFLAGS) -o smpFiltering smpFiltering.cc parsers.o counting.o hashtable.o ktable.o $(Z_LIB_FILES) -fopenmp
 
 parsetest: parsers.o 
 	$(CXX) -o parsers parsers.o $(Z_LIB_FILES)
