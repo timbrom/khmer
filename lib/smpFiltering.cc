@@ -12,7 +12,7 @@ for read in file:
 #include <fstream>
 #include <stdlib.h>
 #include <stdio.h>
-#include "parsers.hh"
+#include "threadedParsers.hh"
 #include "counting.hh"
 #include "primes.hh"
 #include <math.h>
@@ -62,47 +62,37 @@ int main(int argc, char **argv)
     CountingHash h(K, tableSizes);
 
     /* Start parsing the fasta file */
-    IParser* p = IParser::get_parser(argv[1]);
+    ThreadedIParserFactory* pf = ThreadedIParserFactory::get_parser(argv[1], 104857600);
     long long unsigned int totalCount = 0, keptCount = 0;
 
     #pragma omp parallel reduction(+:totalCount,keptCount)
-    while (!p->is_complete())
+    while (!pf->is_complete())
     {
-        Read r;
-        BoundedCounterType medCount;
-        float meanCount;
-        float stdDev;
-        bool shouldExit = false;
-        #pragma omp critical
+        ThreadedIParser* p = pf->get_next_parser();
+        while (!p->is_complete())
         {
-            if (!p->is_complete())
-            {
-                r = p->get_next_read();
-                totalCount++;
-            }
-            else
-            {
-                shouldExit = true;
-            }
-        }
+            Read r;
+            BoundedCounterType medCount;
+            float meanCount;
+            float stdDev;
+            r = p->get_next_read();
+            totalCount++;
 
-        if (shouldExit)
-            break;
-
-        h.get_median_count(r.seq, medCount, meanCount, stdDev);
-        if (medCount < MAX_MEDIAN_COUNT)
-        {
-            keptCount++;
-            /* Count it */
-            KMerIterator kmers(r.seq.c_str(), K);
-            while(!kmers.done())
+            h.get_median_count(r.seq, medCount, meanCount, stdDev);
+            if (medCount < MAX_MEDIAN_COUNT)
             {
-                h.count(kmers.next());
-            }
+                keptCount++;
+                /* Count it */
+                KMerIterator kmers(r.seq.c_str(), K);
+                while(!kmers.done())
+                {
+                    h.count(kmers.next());
+                }
 
-            /* Save it to an output file 
-            outFile << ">" << r.name << endl;
-            outFile << r.seq << endl;*/
+                /* Save it to an output file 
+                outFile << ">" << r.name << endl;
+                outFile << r.seq << endl;*/
+            }
         }
     }
 

@@ -19,8 +19,8 @@ zlib: $(Z_LIB_DIR)/libz$(SO_EXT).1.2.3$(DYLIB_EXT)
 $(Z_LIB_DIR)/libz$(SO_EXT).1.2.3$(DYLIB_EXT):
 	cd $(Z_LIB_DIR); ./configure --shared; make; rm minigzip.o; rm example.o
 
-smpFiltering: threadedParsers.o counting.o hashtable.o ktable.o zlib
-	$(CXX) $(CXXFLAGS) -o smpFiltering smpFiltering.cc threadedParsers.o counting.o hashtable.o ktable.o $(Z_LIB_FILES) -fopenmp
+smpFiltering: threadedParsers.o parsers.o counting.o hashtable.o ktable.o zlib
+	$(CXX) $(CXXFLAGS) -o smpFiltering smpFiltering.cc threadedParsers.o parsers.o counting.o hashtable.o ktable.o $(Z_LIB_FILES) -fopenmp
 
 parsetest: parsers.o 
 	$(CXX) -o parsers parsers.o $(Z_LIB_FILES)
