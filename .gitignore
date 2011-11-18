@@ -26,6 +26,7 @@ lib/zlib-1.2.3/Makefile
 lib/zlib-1.2.3/libz.1.2.3.dylib
 lib/zlib-1.2.3/libz.1.dylib
 lib/zlib-1.2.3/libz.dylib
+lib/smpFiltering
 tests/test-data/random-20-a.fa.part0test
 tests/test-data/random-20-a.fa.parttest
 tests/test-data/fakelump.fa.stopfoo
