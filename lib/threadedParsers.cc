@@ -239,7 +239,6 @@ Read ThreadedFastqParser::get_next_read()
       if ((int)read.seq.find('N') == -1)  {
          valid_read = 1;
       }
-         valid_read = 1;
    }
 
    return read;

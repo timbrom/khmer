@@ -84,7 +84,6 @@ int main(int argc, char **argv)
             float stdDev;
             r = p->get_next_read();
             totalCount++;
-
             h.get_median_count(r.seq, medCount, meanCount, stdDev);
             if (medCount < MAX_MEDIAN_COUNT)
             {
