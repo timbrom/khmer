@@ -34,13 +34,12 @@ private:
    long int endPos;
    Read current_read;
    std::string next_name;
-   bool one_read_left;
 
 public:
    ThreadedFastaParser(const std::string &inputfile, long int startPos, long int end);
    ~ThreadedFastaParser() { infile.close();  }
    Read get_next_read();
-   bool is_complete() { return !one_read_left && (infile.tellg() >= endPos || infile.eof()); } 
+   bool is_complete() { return (infile.tellg() >= endPos || infile.eof()); } 
    long int getEndPos() { return endPos; }
 };
 
