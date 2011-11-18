@@ -77,8 +77,6 @@ ThreadedIParser* ThreadedFastaParserFactory::get_next_parser()
     } while(!__sync_bool_compare_and_swap(&curPos, myCurPos, endPos));
     
 
-std::cout << "Returning fasta parser for thread " << filename << " Start pos: " << myCurPos << " End pos: " << endPos << std::endl;
-
     myFile.close();
     return new ThreadedFastaParser(filename, myCurPos, endPos);
 }
@@ -125,14 +123,24 @@ ThreadedIParser* ThreadedFastqParserFactory::get_next_parser()
 
         /* Read until we see
          * a '@', which indicates the start of the next read, or we reach EOF
+         * We have to be careful - a '@' can show up in the quality scores too
+         * so watch for that
          */
         myFile.seekg(endPos, std::ios::beg);
 
-        while (!myFile.eof() && myFile.get() != '@');
+        char prevChar = myFile.get();
+        while (!myFile.eof())
+        {
+            char curChar = myFile.get();
+            if (curChar == '@' && prevChar == '\n')
+                break;
+            prevChar = curChar;
+        }
 
         /* We get here as soon as we read a '@' */
         /* Put the '@' back */
-        myFile.unget();
+        if (!myFile.eof())
+            myFile.unget();
         endPos = myFile.tellg();
 
         if (endPos == -1)
@@ -140,7 +148,6 @@ ThreadedIParser* ThreadedFastqParserFactory::get_next_parser()
 
     } while(!__sync_bool_compare_and_swap(&curPos, myCurPos, endPos));
     
-
     myFile.close();
     return new ThreadedFastqParser(filename, myCurPos, endPos);
 }
@@ -187,7 +194,6 @@ Read ThreadedFastaParser::get_next_read()
       if ((int)seq.find('N') == -1)  {
          valid_read = 1;
       } 
-         valid_read = 1;
 
       read.seq = seq;
       seq = "";
@@ -201,8 +207,6 @@ ThreadedFastqParser::ThreadedFastqParser(const std::string &inputfile,
                 long int startPos, long int end) :
                          infile(inputfile.c_str())
 {
-    std::string line_three, quality_scores;
-
     assert(infile.is_open());
 
     /* Lay the start pointer down in the right location */
@@ -210,60 +214,34 @@ ThreadedFastqParser::ThreadedFastqParser(const std::string &inputfile,
 
     /* Set the end ptr */
     endPos = end;
-
-   bool valid_read = 0;
-
-   while (!valid_read && !infile.eof())  {
-      getline(infile, current_read.name);
-      getline(infile, current_read.seq);
-      getline(infile, line_three); 
-      getline(infile, quality_scores);
-
-      assert(current_read.name[0] == '@');
-      assert(line_three[0] == '+' || line_three[0] == '#');
-      assert(quality_scores.length() == current_read.seq.length());
-   
-      current_read.name = current_read.name.substr(1);
-
-      if ((int)current_read.seq.find('N') == -1)  {
-         valid_read = 1;
-      }
-         valid_read = 1;
-   }
-
 }
 
 Read ThreadedFastqParser::get_next_read()
 {
-   Read next_read = current_read;
+   Read read;
    std::string line_three, quality_scores;
 
    bool valid_read = 0;
 
    while (!valid_read && !infile.eof())  {
 
-      getline(infile, current_read.name);
-
-      if (infile.eof())  {
-         return next_read;
-      }
-
-      getline(infile, current_read.seq);
+      getline(infile, read.name);
+      getline(infile, read.seq);
       getline(infile, line_three);
       getline(infile, quality_scores);
    
-      assert(current_read.name[0] == '@');
+      assert(read.name[0] == '@');
       assert(line_three[0] == '+' || line_three[0] == '#');
-      assert(quality_scores.length() == current_read.seq.length());
+      assert(quality_scores.length() == read.seq.length());
 
-      current_read.name = current_read.name.substr(1);
+      read.name = read.name.substr(1);
 
-      if ((int)current_read.seq.find('N') == -1)  {
+      if ((int)read.seq.find('N') == -1)  {
          valid_read = 1;
       }
          valid_read = 1;
    }
 
-   return next_read;
+   return read;
 }
 

@@ -32,8 +32,6 @@ class ThreadedFastaParser : public ThreadedIParser
 private:
    std::ifstream infile;
    long int endPos;
-   Read current_read;
-   std::string next_name;
 
 public:
    ThreadedFastaParser(const std::string &inputfile, long int startPos, long int end);
@@ -48,7 +46,6 @@ class ThreadedFastqParser : public ThreadedIParser
 private:
    std::ifstream infile;
    long int endPos;
-   Read current_read;
 
 public:
    ThreadedFastqParser(const std::string &inputfile, long int startPos, long int end);

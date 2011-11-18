@@ -64,7 +64,7 @@ int main(int argc, char **argv)
         ofstream outFile;
         string outputFileName(argv[2]);
         char numstr[21]; // enough to hold all numbers up to 64-bits
-        sprintf(numstr, "%lu", p->getEndPos());
+        sprintf(numstr, "%020lu", p->getEndPos());
         outputFileName += "_";
         outputFileName += numstr;
         outFile.open(outputFileName.c_str());
