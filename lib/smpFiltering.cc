@@ -35,16 +35,6 @@ int main(int argc, char **argv)
         exit(-1);
     }
 
-    ofstream outFile;
-    outFile.open(argv[2]);
-    if (! outFile.is_open())
-    {
-        cerr << "Failed to open file " << argv[2];
-        perror("");
-        cerr << endl;
-        exit(-1);
-    }
-
     unsigned int K;
     if (sscanf(argv[3], "%d", &K) != 1)
     {
@@ -69,6 +59,23 @@ int main(int argc, char **argv)
     while (!pf->is_complete())
     {
         ThreadedIParser* p = pf->get_next_parser();
+
+        /* Open the output file */
+        ofstream outFile;
+        string outputFileName(argv[2]);
+        char numstr[21]; // enough to hold all numbers up to 64-bits
+        sprintf(numstr, "%lu", p->getEndPos());
+        outputFileName += "_";
+        outputFileName += numstr;
+        outFile.open(outputFileName.c_str());
+        if (! outFile.is_open())
+        {
+            cerr << "Failed to open file " << outputFileName;
+            perror("");
+            cerr << endl;
+            exit(-1);
+        }
+
         while (!p->is_complete())
         {
             Read r;
@@ -89,14 +96,13 @@ int main(int argc, char **argv)
                     h.count(kmers.next());
                 }
 
-                /* Save it to an output file 
                 outFile << ">" << r.name << endl;
-                outFile << r.seq << endl;*/
+                outFile << r.seq << endl;
             }
         }
+        outFile.close();
     }
 
-    outFile.close();
 
     printf("Total Count: %llu, Kept Count: %llu\n", totalCount, keptCount);
     printf("Hashtable Occupancy: %lf\n", (double)h.n_occupied() / TABLE_SIZE);

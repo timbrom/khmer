@@ -24,6 +24,7 @@ public:
    virtual Read get_next_read() = 0;
    virtual bool is_complete() = 0;
    virtual ~ThreadedIParser() { }
+   virtual long int getEndPos() = 0;
 };
 
 class ThreadedFastaParser : public ThreadedIParser
@@ -33,12 +34,14 @@ private:
    long int endPos;
    Read current_read;
    std::string next_name;
+   bool one_read_left;
 
 public:
    ThreadedFastaParser(const std::string &inputfile, long int startPos, long int end);
    ~ThreadedFastaParser() { infile.close();  }
    Read get_next_read();
-   bool is_complete() { return infile.tellg() >= endPos; } 
+   bool is_complete() { return !one_read_left && (infile.tellg() >= endPos || infile.eof()); } 
+   long int getEndPos() { return endPos; }
 };
 
 class ThreadedFastqParser : public ThreadedIParser
@@ -52,7 +55,8 @@ public:
    ThreadedFastqParser(const std::string &inputfile, long int startPos, long int end);
    ~ThreadedFastqParser() { infile.close(); }
    Read get_next_read();
-   bool is_complete() { return infile.tellg() >= endPos; }
+   bool is_complete() { return infile.tellg() >= endPos || infile.eof(); }
+   long int getEndPos() { return endPos; }
 };
 
 /* Base class for parser factories. Each factory will return a parser
