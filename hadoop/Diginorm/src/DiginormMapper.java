@@ -1,24 +1,17 @@
 import java.io.IOException;
 
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapred.MapReduceBase;
-import org.apache.hadoop.mapred.Mapper;
-import org.apache.hadoop.mapred.OutputCollector;
-import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.mapreduce.Mapper;
 
-public class DiginormMapper extends MapReduceBase 
-    implements Mapper<Text, Text, Text, Text>
+public class DiginormMapper extends Mapper<Text, Text, Text, Text>
 {
-    public void map(Text key, Text value,
-        OutputCollector<Text, IntWritable> output, Reporter reporter)
-        throws IOException
+    public void map(Text key, Text value, Context context)
+        throws IOException, InterruptedException
     {
         String qual = key.toString();
         String seq = value.toString();
 
-        output.collect(new Text(qual), new Text(seq));
+        context.write(new Text(qual), new Text(seq));
 
     }
 }
