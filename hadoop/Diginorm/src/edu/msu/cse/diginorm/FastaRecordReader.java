@@ -1,3 +1,4 @@
+package edu.msu.cse.diginorm;
 import java.io.IOException;
 
 import org.apache.hadoop.io.Text;
@@ -55,7 +56,6 @@ public class FastaRecordReader extends RecordReader<Text, Text>
         lineReader.initialize(input, context);
     }
 
-    //TODO: Add code to skip a sequence with N's
     @Override
     public boolean nextKeyValue() throws IOException, InterruptedException
     {       
