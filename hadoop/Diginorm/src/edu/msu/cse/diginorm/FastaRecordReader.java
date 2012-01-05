@@ -1,28 +1,27 @@
 package edu.msu.cse.diginorm;
 import java.io.IOException;
 
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.RecordReader;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.lib.input.FileSplit;
-import org.apache.hadoop.mapreduce.lib.input.LineRecordReader;
+import org.apache.hadoop.mapred.FileSplit;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.LineRecordReader;
+import org.apache.hadoop.mapred.RecordReader;
 
-
-public class FastaRecordReader extends RecordReader<Text, Text>
+public class FastaRecordReader implements RecordReader<Text, Text>
 {
     private LineRecordReader lineReader;
-    private Text lineKey;
+    private LongWritable lineKey;
     private Text lineValue;
-    private Text nextLineKey;
+    private Text nextKey;
 
-    public FastaRecordReader(TaskAttemptContext context, FileSplit input) throws IOException, InterruptedException
+    public FastaRecordReader(JobConf job, FileSplit input) throws IOException
     {
-        lineReader = new LineRecordReader();
-        
-        lineKey = new Text();
-        lineValue = new Text();
-        nextLineKey = new Text(" ");
+        lineReader = new LineRecordReader(job, input);
+
+        lineKey = lineReader.createKey();
+        lineValue = lineReader.createValue();
+        nextKey = new Text(" ");
     }
 
     @Override
@@ -32,65 +31,83 @@ public class FastaRecordReader extends RecordReader<Text, Text>
     }
 
     @Override
-    public Text getCurrentKey() throws IOException, InterruptedException
+    public Text createKey()
     {
-        return lineKey;
+        return new Text("");
     }
 
     @Override
-    public Text getCurrentValue() throws IOException, InterruptedException
+    public Text createValue()
     {
-        return lineValue;
+        return new Text("");
     }
 
     @Override
-    public float getProgress() throws IOException, InterruptedException
+    public long getPos() throws IOException
+    {
+        return lineReader.getPos();
+    }
+
+    @Override
+    public float getProgress() throws IOException
     {
         return lineReader.getProgress();
     }
 
     @Override
-    public void initialize(InputSplit input, TaskAttemptContext context)
-            throws IOException, InterruptedException
+    public boolean next(Text key, Text value) throws IOException
     {
-        lineReader.initialize(input, context);
-    }
-
-    @Override
-    public boolean nextKeyValue() throws IOException, InterruptedException
-    {       
-        /* Our key in Fasta is a line that starts with a '>'. 
-         * Skip lines until we get to a line that starts with '>' 
-         */
-        while(nextLineKey.charAt(0) != '>')
+        System.out.println("Next Key: " + nextKey.toString());
+        /* If we don't have another key laying around */
+        if (nextKey.charAt(0) != '>')
         {
-            if(lineReader.nextKeyValue() == false)
+            // get the next line
+            if (!lineReader.next(lineKey, lineValue)) {
                 return false;
-            nextLineKey.set(lineReader.getCurrentValue());
-        }
+            }
         
-        /* We have our key. Save it off */
-        lineKey.set(nextLineKey);
+            /* Our key in Fasta is a line that starts with a '>'. 
+             * Skip lines until we get to a line that starts with '>' 
+             */
+            while(lineValue.charAt(0) != '>')
+            {
+                if(lineReader.next(lineKey, lineValue) == false)
+                    return false;
+            }
+        
+            /* We have our key. Save it off */
+            key.set(lineValue);
+        }
+        else
+        {
+            key.set(nextKey);
+        }
+        System.out.println("Key: " + key.toString());
         
         /* Now read the values (sequence data). There can be multiple 
          * lines of sequence data. Accumulate all lines until we reach a 
          * line that starts with a '>' which indicates the start of the 
          * next read
-         */
-        lineValue.clear();
-        
+         */        
         /* Get the next line */
-        if(lineReader.nextKeyValue() == false)
-            return false;
-        nextLineKey.set(lineReader.getCurrentValue());
-        
-        while(nextLineKey.charAt(0) != '>')
+        value.clear();
+        if(lineReader.next(lineKey, lineValue) == false)
         {
-            lineValue.append(nextLineKey.getBytes(), 0, nextLineKey.getLength());
+            System.out.println("False lineValue: " + lineValue.toString());
+            return false;
+        }
+        nextKey.set(lineValue);
+        
+        System.out.println("First lineValue: " + lineValue.toString());
+        while(nextKey.charAt(0) != '>')
+        {
+            value.append(nextKey.getBytes(), 0, nextKey.getLength());
+            System.out.println("Looop value: " + value.toString());
             /* We have hit the end */
-            if(lineReader.nextKeyValue() == false)
+            if(lineReader.next(lineKey, lineValue) == false)
                 break;
-            nextLineKey.set(lineReader.getCurrentValue());
+            nextKey.set(lineValue);
+            System.out.println("Loop lineValue: " + lineValue.toString());
         }
         
         /* We have successfully read if lineValue is greater than zero */

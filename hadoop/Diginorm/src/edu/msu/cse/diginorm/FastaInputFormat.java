@@ -2,21 +2,21 @@ package edu.msu.cse.diginorm;
 import java.io.IOException;
 
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.hadoop.mapreduce.RecordReader;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
-import org.apache.hadoop.mapreduce.lib.input.FileSplit;
+import org.apache.hadoop.mapred.FileInputFormat;
+import org.apache.hadoop.mapred.FileSplit;
+import org.apache.hadoop.mapred.InputSplit;
+import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.mapred.RecordReader;
+import org.apache.hadoop.mapred.Reporter;
 
 
 public class FastaInputFormat extends FileInputFormat<Text, Text>
 {
     @Override
-    public RecordReader<Text, Text> createRecordReader(InputSplit input,
-            TaskAttemptContext context) throws IOException, InterruptedException
+    public RecordReader<Text, Text> getRecordReader(InputSplit input,
+            JobConf job, Reporter reporter) throws IOException
     {
-        context.setStatus(input.toString());
-        return new FastaRecordReader(context, (FileSplit)input);
+        reporter.setStatus(input.toString());
+        return new FastaRecordReader(job, (FileSplit)input);
     }
-
 }
