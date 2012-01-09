@@ -1,5 +1,6 @@
 #include <string>
 #include <stdint.h>
+#include <iostream>
 
 #include "hadoop/Pipes.hh"
 #include "hadoop/TemplateFactory.hh"
@@ -19,10 +20,9 @@ class DiginormMapper : public HadoopPipes::Mapper
         string key = context.getInputKey();
         string value = context.getInputValue();
 
-        if (value.find('N') != string::npos)
-        {
+cout << key << endl;;
+cout << value << endl;;
             context.emit(key, value);
-        }
     }
 };
 
@@ -38,6 +38,11 @@ class DiginormReducer : public HadoopPipes::Reducer
     {
         while(context.nextValue())
         {
+        string key = context.getInputKey();
+        string value = context.getInputValue();
+
+cout << key << endl;;
+cout << value << endl;;
             context.emit(context.getInputKey(), context.getInputValue());
         }
     }

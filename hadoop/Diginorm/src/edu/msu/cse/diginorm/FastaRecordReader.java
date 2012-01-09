@@ -1,33 +1,42 @@
 package edu.msu.cse.diginorm;
+
 import java.io.IOException;
 
-import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileSplit;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.LineRecordReader;
 import org.apache.hadoop.mapred.RecordReader;
+import org.apache.hadoop.util.LineReader;
 
 public class FastaRecordReader implements RecordReader<Text, Text>
 {
-    private LineRecordReader lineReader;
-    private LongWritable lineKey;
-    private Text lineValue;
-    private Text nextKey;
+    private long       start;
+    private long       pos;
+    private long       end;
+    private LineReader in;
+    int                maxLineLength;
+    private Text       nextKey;
+    boolean lastKey = false;
 
     public FastaRecordReader(JobConf job, FileSplit input) throws IOException
     {
-        lineReader = new LineRecordReader(job, input);
+        this.maxLineLength = job.getInt("mapred.linerecordreader.maxlength",
+                Integer.MAX_VALUE);
+        start = input.getStart();
+        end = start + input.getLength();
+        final Path file = input.getPath();
 
-        lineKey = lineReader.createKey();
-        lineValue = lineReader.createValue();
+        // open the file and seek to the start of the split
+        FileSystem fs = file.getFileSystem(job);
+        FSDataInputStream fileIn = fs.open(input.getPath());
+        fileIn.seek(start);
+        in = new LineReader(fileIn, job);
+
+        this.pos = start;
         nextKey = new Text(" ");
-    }
-
-    @Override
-    public void close() throws IOException
-    {
-        lineReader.close();
     }
 
     @Override
@@ -42,75 +51,106 @@ public class FastaRecordReader implements RecordReader<Text, Text>
         return new Text("");
     }
 
-    @Override
-    public long getPos() throws IOException
+    public float getProgress()
     {
-        return lineReader.getPos();
+        if (start == end)
+        {
+            return 0.0f;
+        } else
+        {
+            return Math.min(1.0f, (pos - start) / (float) (end - start));
+        }
     }
 
-    @Override
-    public float getProgress() throws IOException
+    public synchronized long getPos() throws IOException
     {
-        return lineReader.getProgress();
+        return pos;
     }
 
-    @Override
-    public boolean next(Text key, Text value) throws IOException
+    public synchronized void close() throws IOException
     {
-        System.out.println("Next Key: " + nextKey.toString());
+        if (in != null)
+        {
+            in.close();
+        }
+    }
+
+    public synchronized boolean next(Text key, Text value) throws IOException
+    {
+        if (pos > end)
+            return false;
+
         /* If we don't have another key laying around */
         if (nextKey.charAt(0) != '>')
         {
-            // get the next line
-            if (!lineReader.next(lineKey, lineValue)) {
+            /* get the next line */
+            int newSize = in.readLine(nextKey, maxLineLength);
+            if (newSize == 0)
+            {
                 return false;
             }
-        
-            /* Our key in Fasta is a line that starts with a '>'. 
-             * Skip lines until we get to a line that starts with '>' 
+            pos += newSize;
+            /*
+             * Our key in Fasta is a line that starts with a '>'. Skip lines
+             * until we get to a line that starts with '>'
              */
-            while(lineValue.charAt(0) != '>')
+            while (nextKey.charAt(0) != '>')
             {
-                if(lineReader.next(lineKey, lineValue) == false)
+                newSize = in.readLine(nextKey, maxLineLength);
+                if (newSize == 0)
+                {
                     return false;
+                }
+                pos += newSize;
             }
-        
+
             /* We have our key. Save it off */
-            key.set(lineValue);
-        }
-        else
+            key.set(nextKey);
+        } else
         {
             key.set(nextKey);
         }
-        System.out.println("Key: " + key.toString());
-        
-        /* Now read the values (sequence data). There can be multiple 
-         * lines of sequence data. Accumulate all lines until we reach a 
-         * line that starts with a '>' which indicates the start of the 
-         * next read
-         */        
+
+        /*
+         * Now read the values (sequence data). There can be multiple lines of
+         * sequence data. Accumulate all lines until we reach a line that starts
+         * with a '>' which indicates the start of the next read
+         */
         /* Get the next line */
         value.clear();
-        if(lineReader.next(lineKey, lineValue) == false)
+        int newSize = in.readLine(nextKey, maxLineLength);
+        if (newSize == 0)
         {
-            System.out.println("False lineValue: " + lineValue.toString());
             return false;
         }
-        nextKey.set(lineValue);
-        
-        System.out.println("First lineValue: " + lineValue.toString());
-        while(nextKey.charAt(0) != '>')
+        pos += newSize;
+
+        while (nextKey.charAt(0) != '>')
         {
             value.append(nextKey.getBytes(), 0, nextKey.getLength());
-            System.out.println("Looop value: " + value.toString());
             /* We have hit the end */
-            if(lineReader.next(lineKey, lineValue) == false)
+            newSize = in.readLine(nextKey, maxLineLength);
+            if (newSize == 0) // EOF
+            {
+                nextKey.set(" ");
                 break;
-            nextKey.set(lineValue);
-            System.out.println("Loop lineValue: " + lineValue.toString());
+            }
+            pos += newSize;
         }
         
-        /* We have successfully read if lineValue is greater than zero */
-        return (lineValue.getLength() > 0);
+        /* If I have read a key into the nextKey variable, this is 
+         * the key I need to use the next time this function is called.
+         * I also need to make sure that this function returns the next
+         * key/value pair the next time it is called, so set the end to 
+         * greater than the current position.
+         */
+        if (pos > end && lastKey == false)
+        {
+            lastKey = true;
+            end = pos + 1;
+        }
+
+        /* We have successfully read if value is greater than zero */
+        return (value.getLength() > 0);
     }
 }
