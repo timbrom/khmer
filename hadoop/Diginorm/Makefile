@@ -8,7 +8,7 @@ bin/diginorm_mapper: src/Diginorm.cpp
 	$(CC) $(CPPFLAGS) $(LDFLAGS) $< -lhadooppipes -lhadooputils -lpthread -lcrypto -lssl -o $@
 
 bin/FastaParser.jar: bin/edu/msu/cse/diginorm/FastaInputFormat.class bin/edu/msu/cse/diginorm/FastaRecordReader.class
-	jar -cvf $@ $^
+	jar -cvf bin/FastaParser.jar -C bin edu/msu/cse/diginorm/FastaInputFormat.class -C bin edu/msu/cse/diginorm/FastaRecordReader.class
 
 bin/edu/msu/cse/diginorm/FastaInputFormat.class: src/edu/msu/cse/diginorm/FastaInputFormat.java
 	ant
