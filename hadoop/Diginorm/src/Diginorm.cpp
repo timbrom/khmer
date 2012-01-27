@@ -6,7 +6,16 @@
 #include "hadoop/TemplateFactory.hh"
 #include "hadoop/StringUtils.hh"
 
+#include <counting.hh>
+#include <primes.hh>
+
+//TODO: Make hadoop distribute these values
+#define MAX_MEDIAN_COUNT 10
+#define TABLE_SIZE 200000000
+#define KMER_SIZE 20
+
 using namespace std;
+using namespace khmer;
 
 class DiginormMapper : public HadoopPipes::Mapper 
 {
@@ -20,30 +29,56 @@ class DiginormMapper : public HadoopPipes::Mapper
         string key = context.getInputKey();
         string value = context.getInputValue();
 
-cout << key << endl;;
-cout << value << endl;;
-            context.emit(key, value);
+        context.emit(key, value);
     }
 };
 
 class DiginormReducer : public HadoopPipes::Reducer
 {
     public:
+    CountingHash *h;
+    long long unsigned int totalCount, keptCount;
+    
     DiginormReducer(HadoopPipes::TaskContext &context)
     {
-    //TODO: Setup for bloom filter
+        Primes pri(TABLE_SIZE);
+        vector<HashIntoType> tableSizes;
+        tableSizes.push_back(pri.get_next_prime());
+        tableSizes.push_back(pri.get_next_prime());
+        tableSizes.push_back(pri.get_next_prime());
+        h = new CountingHash(KMER_SIZE, tableSizes);
+        totalCount = 0;
+        keptCount = 0;
+    }
+
+    ~DiginormReducer()
+    {
+        printf("Total Count: %llu, Kept Count: %llu\n", totalCount, keptCount);
+        printf("Hashtable Occupancy: %lf\n", (double)h->n_occupied() / TABLE_SIZE);
     }
 
     void reduce(HadoopPipes::ReduceContext &context) 
     {
+        string key, value;
         while(context.nextValue())
         {
-        string key = context.getInputKey();
-        string value = context.getInputValue();
+            BoundedCounterType medCount;
+            float meanCount, stdDev;
+            totalCount++;
 
-cout << key << endl;;
-cout << value << endl;;
-            context.emit(context.getInputKey(), context.getInputValue());
+            key = context.getInputKey();
+            value = context.getInputValue();
+            h->get_median_count(value, medCount, meanCount, stdDev);
+            if (medCount < MAX_MEDIAN_COUNT)
+            {
+                keptCount++;
+                KMerIterator kmers(value.c_str(), KMER_SIZE);
+                while (!kmers.done())
+                {
+                    h->count(kmers.next());
+                }
+                context.emit(context.getInputKey(), context.getInputValue());
+            }
         }
     }
 };
