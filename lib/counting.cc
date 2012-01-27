@@ -603,11 +603,32 @@ void CountingHash::get_median_count(const std::string &s,
   BoundedCounterType count;
   std::vector<BoundedCounterType> counts;
   KMerIterator kmers(s.c_str(), _ksize);
+  bool valid = 1;
 
-  while(!kmers.done()) {
-    HashIntoType kmer = kmers.next();
-    count = this->get_count(kmer);
-    counts.push_back(count);
+  #pragma omp parallel private(valid)
+  while(valid == 1) {
+    HashIntoType kmer;
+    #pragma omp critical
+    {
+        if (!kmers.done())
+        {
+            kmer = kmers.next();
+        }
+        else
+        {
+            valid = 0;
+        }
+    }
+
+    if (valid)
+    {
+        count = this->get_count(kmer);
+
+        #pragma omp critical
+        {
+            counts.push_back(count);
+        }
+    }
   }
 
   assert(counts.size());
