@@ -12,7 +12,7 @@ for read in file:
 #include <fstream>
 #include <stdlib.h>
 #include <stdio.h>
-#include "parsers.hh"
+#include "threadedParsers.hh"
 #include "counting.hh"
 #include "primes.hh"
 #include <math.h>
@@ -52,46 +52,56 @@ int main(int argc, char **argv)
     CountingHash h(K, tableSizes);
 
     /* Start parsing the fasta file */
-    IParser *p = IParser::get_parser(argv[1]);
+    ThreadedIParserFactory* pf = ThreadedIParserFactory::get_parser(argv[1], 104857600);
     long long unsigned int totalCount = 0, keptCount = 0;
 
-    /* Open the output file */
-    ofstream outFile;
-    outFile.open(argv[2]);
-    if (! outFile.is_open())
+    #pragma omp parallel reduction(+:totalCount,keptCount)
+    while (!pf->is_complete())
     {
-        cerr << "Failed to open file " << argv[2];
-        perror("");
-        cerr << endl;
-        exit(-1);
-    }
+        ThreadedIParser* p = pf->get_next_parser();
 
-    while (!p->is_complete())
-    {
-
-        Read r;
-        BoundedCounterType medCount;
-        float meanCount;
-        float stdDev;
-        r = p->get_next_read();
-        totalCount++;
-        h.get_median_count(r.seq, medCount, meanCount, stdDev);
-        if (medCount < MAX_MEDIAN_COUNT)
+        /* Open the output file */
+        ofstream outFile;
+        string outputFileName(argv[2]);
+        char numstr[21]; // enough to hold all numbers up to 64-bits
+        sprintf(numstr, "%020lu", p->getEndPos());
+        outputFileName += "_";
+        outputFileName += numstr;
+        outFile.open(outputFileName.c_str());
+        if (! outFile.is_open())
         {
-            keptCount++;
-            /* Count it */
-            KMerIterator kmers(r.seq.c_str(), K);
-            while(!kmers.done())
-            {
-                h.count(kmers.next());
-            }
-
-            outFile << ">" << r.name << endl;
-            outFile << r.seq << endl;
+            cerr << "Failed to open file " << outputFileName;
+            perror("");
+            cerr << endl;
+            exit(-1);
         }
+
+        while (!p->is_complete())
+        {
+            Read r;
+            BoundedCounterType medCount;
+            float meanCount;
+            float stdDev;
+            r = p->get_next_read();
+            totalCount++;
+            h.get_median_count(r.seq, medCount, meanCount, stdDev);
+            if (medCount < MAX_MEDIAN_COUNT)
+            {
+                keptCount++;
+                /* Count it */
+                KMerIterator kmers(r.seq.c_str(), K);
+                while(!kmers.done())
+                {
+                    h.count(kmers.next());
+                }
+
+                outFile << ">" << r.name << endl;
+                outFile << r.seq << endl;
+            }
+        }
+        outFile.close();
     }
 
-    outFile.close();
 
     printf("Total Count: %llu, Kept Count: %llu\n", totalCount, keptCount);
     printf("Hashtable Occupancy: %lf\n", (double)h.n_occupied() / TABLE_SIZE);
