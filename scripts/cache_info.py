@@ -43,7 +43,7 @@ for cpu in cpus :
         print "\t\tSize: " + value.rstrip()
 
         # Is the cache shared?
-        f = open(cachePath + "/size", "r")
+        f = open(cachePath + "/shared_cpu_list", "r")
         value = f.read();
         f.close();
 
@@ -52,7 +52,7 @@ for cpu in cpus :
         if len(tmp) is 1 :
             print "\t\tShared: no"
         else :
-            print "\t\tShared: yes (with CPUs " + value  + ")"
+            print "\t\tShared: yes (with CPUs " + value.rstrip()  + ")"
 
         # Print the cache line size
         f = open(cachePath + "/coherency_line_size", "r")
