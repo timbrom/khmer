@@ -1,18 +1,18 @@
 package edu.msu.cse.diginorm;
 import java.io.IOException;
 
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
-public class DiginormMapper extends Mapper<Text, Text, Text, Text>
+public class DiginormMapper extends Mapper<LongWritable, Text, Text, LongWritable>
 {
-    public void map(Text key, Text value, Context context)
+    public void map(LongWritable key, Text value, Context context)
             throws IOException, InterruptedException
     {
-        String qual = key.toString();
-        String seq = value.toString();
-
-        context.write(new Text(qual), new Text(seq));
-
+        int K = context.getConfiguration().getInt("K", 32);
+        System.out.println("K: " + K);
+        
+        context.write(value, key);
     }
 }

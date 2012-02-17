@@ -1,6 +1,7 @@
 package edu.msu.cse.diginorm;
 import java.io.IOException;
 
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
@@ -9,12 +10,14 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.mapreduce.lib.input.LineRecordReader;
 
 
-public class FastaRecordReader extends RecordReader<Text, Text>
+public class FastaRecordReader extends RecordReader<LongWritable, Text>
 {
     private LineRecordReader lineReader;
     private Text lineKey;
     private Text lineValue;
     private Text nextLineKey;
+    private LongWritable linePos;
+    private LongWritable nextLinePos;
 
     public FastaRecordReader(TaskAttemptContext context, FileSplit input) throws IOException, InterruptedException
     {
@@ -23,6 +26,8 @@ public class FastaRecordReader extends RecordReader<Text, Text>
         lineKey = new Text();
         lineValue = new Text();
         nextLineKey = new Text(" ");
+        linePos = new LongWritable();
+        nextLinePos = new LongWritable();
     }
 
     @Override
@@ -32,9 +37,9 @@ public class FastaRecordReader extends RecordReader<Text, Text>
     }
 
     @Override
-    public Text getCurrentKey() throws IOException, InterruptedException
+    public LongWritable getCurrentKey() throws IOException, InterruptedException
     {
-        return lineKey;
+        return linePos;
     }
 
     @Override
@@ -59,7 +64,8 @@ public class FastaRecordReader extends RecordReader<Text, Text>
     @Override
     public boolean nextKeyValue() throws IOException, InterruptedException
     {       
-        /* Our key in Fasta is a line that starts with a '>'. 
+        /* Our key in Fasta is a line that starts with a '>'.
+         * The key itself is the byte position of the '>' character 
          * Skip lines until we get to a line that starts with '>' 
          */
         while(nextLineKey.charAt(0) != '>')
@@ -67,10 +73,13 @@ public class FastaRecordReader extends RecordReader<Text, Text>
             if(lineReader.nextKeyValue() == false)
                 return false;
             nextLineKey.set(lineReader.getCurrentValue());
+            nextLinePos.set(lineReader.getCurrentKey().get());
         }
         
         /* We have our key. Save it off */
         lineKey.set(nextLineKey);
+        linePos.set(nextLinePos.get());
+
         
         /* Now read the values (sequence data). There can be multiple 
          * lines of sequence data. Accumulate all lines until we reach a 
@@ -83,6 +92,7 @@ public class FastaRecordReader extends RecordReader<Text, Text>
         if(lineReader.nextKeyValue() == false)
             return false;
         nextLineKey.set(lineReader.getCurrentValue());
+        nextLinePos.set(lineReader.getCurrentKey().get());
         
         while(nextLineKey.charAt(0) != '>')
         {
@@ -91,6 +101,7 @@ public class FastaRecordReader extends RecordReader<Text, Text>
             if(lineReader.nextKeyValue() == false)
                 break;
             nextLineKey.set(lineReader.getCurrentValue());
+            nextLinePos.set(lineReader.getCurrentKey().get());
         }
         
         /* We have successfully read if lineValue is greater than zero */

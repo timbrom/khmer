@@ -1,15 +1,16 @@
 package edu.msu.cse.diginorm;
 import java.io.IOException;
 
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
-public class DiginormReducer extends Reducer<Text, Text, Text, Text>
+public class DiginormReducer extends Reducer<Text, LongWritable, Text, LongWritable>
 {
-    public void reduce(Text key, Iterable<Text> values, Context context)
+    public void reduce(Text key, Iterable<LongWritable> values, Context context)
             throws IOException, InterruptedException
     {
-        for (Text value : values)
+        for (LongWritable value : values)
             context.write(key, value);
     }
 }
