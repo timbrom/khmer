@@ -1,31 +1,36 @@
 package edu.msu.cse.diginorm;
 import java.io.IOException;
 
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
-import org.apache.hadoop.mapreduce.lib.input.LineRecordReader;
+import org.apache.hadoop.util.LineReader;
 
 
 public class FastaRecordReader extends RecordReader<LongWritable, Text>
 {
-    private LineRecordReader lineReader;
-    private Text lineKey;
+    private long       start;
+    private long       pos;
+    private long       end;
+    private LineReader in;
+    int                maxLineLength;
+    boolean lastKey = false;
+    
+    private Text tmpText;
     private Text lineValue;
-    private Text nextLineKey;
     private LongWritable linePos;
     private LongWritable nextLinePos;
 
-    public FastaRecordReader(TaskAttemptContext context, FileSplit input) throws IOException, InterruptedException
+    public FastaRecordReader() throws IOException, InterruptedException
     {
-        lineReader = new LineRecordReader();
-        
-        lineKey = new Text();
         lineValue = new Text();
-        nextLineKey = new Text(" ");
+        tmpText = new Text(" ");
         linePos = new LongWritable();
         nextLinePos = new LongWritable();
     }
@@ -33,7 +38,10 @@ public class FastaRecordReader extends RecordReader<LongWritable, Text>
     @Override
     public void close() throws IOException
     {
-        lineReader.close();
+        if (in != null)
+        {
+            in.close();
+        }
     }
 
     @Override
@@ -51,33 +59,57 @@ public class FastaRecordReader extends RecordReader<LongWritable, Text>
     @Override
     public float getProgress() throws IOException, InterruptedException
     {
-        return lineReader.getProgress();
+        if (start == end)
+        {
+            return 0.0f;
+        } else
+        {
+            return Math.min(1.0f, (pos - start) / (float) (end - start));
+        }
     }
 
     @Override
     public void initialize(InputSplit input, TaskAttemptContext context)
             throws IOException, InterruptedException
     {
-        lineReader.initialize(input, context);
+        this.maxLineLength = context.getConfiguration().getInt("mapred.linerecordreader.maxlength",
+                Integer.MAX_VALUE);
+        FileSplit split = (FileSplit) input;
+        start = split.getStart();
+        end = start + split.getLength();
+        final Path file = split.getPath();
+        FileSystem fs = file.getFileSystem(context.getConfiguration());
+        FSDataInputStream fileIn = fs.open(split.getPath());
+        fileIn.seek(start);
+        in = new LineReader(fileIn, context.getConfiguration());
+        
+        this.pos = start;
     }
 
     @Override
     public boolean nextKeyValue() throws IOException, InterruptedException
     {       
+        // If we hit the end of our split
+        if (pos > end)
+            return false;
+        
         /* Our key in Fasta is a line that starts with a '>'.
          * The key itself is the byte position of the '>' character 
          * Skip lines until we get to a line that starts with '>' 
          */
-        while(nextLineKey.charAt(0) != '>')
+        
+        while(tmpText.charAt(0) != '>')
         {
-            if(lineReader.nextKeyValue() == false)
+            int newSize = in.readLine(tmpText, maxLineLength);
+            if (newSize == 0)
+            {
                 return false;
-            nextLineKey.set(lineReader.getCurrentValue());
-            nextLinePos.set(lineReader.getCurrentKey().get());
+            }
+            nextLinePos.set(pos);
+            pos += newSize;
         }
         
         /* We have our key. Save it off */
-        lineKey.set(nextLineKey);
         linePos.set(nextLinePos.get());
 
         
@@ -87,21 +119,38 @@ public class FastaRecordReader extends RecordReader<LongWritable, Text>
          * next read
          */
         lineValue.clear();
-        
-        /* Get the next line */
-        if(lineReader.nextKeyValue() == false)
-            return false;
-        nextLineKey.set(lineReader.getCurrentValue());
-        nextLinePos.set(lineReader.getCurrentKey().get());
-        
-        while(nextLineKey.charAt(0) != '>')
+        int newSize = in.readLine(tmpText, maxLineLength);
+        if (newSize == 0)
         {
-            lineValue.append(nextLineKey.getBytes(), 0, nextLineKey.getLength());
+            return false;
+        }
+        nextLinePos.set(pos);
+        pos += newSize;
+        
+        while(tmpText.charAt(0) != '>')
+        {
+            lineValue.append(tmpText.getBytes(), 0, tmpText.getLength());
             /* We have hit the end */
-            if(lineReader.nextKeyValue() == false)
+            newSize = in.readLine(tmpText, maxLineLength);
+            if (newSize == 0) // EOF
+            {
+                tmpText.set(" ");
                 break;
-            nextLineKey.set(lineReader.getCurrentValue());
-            nextLinePos.set(lineReader.getCurrentKey().get());
+            }
+            nextLinePos.set(pos);
+            pos += newSize;
+        }
+        
+        /* If I have read a key into the nextKey variable, this is 
+         * the key I need to use the next time this function is called.
+         * I also need to make sure that this function returns the next
+         * key/value pair the next time it is called, so set the end to 
+         * greater than the current position.
+         */
+        if (pos > end && lastKey == false)
+        {
+            lastKey = true;
+            end = pos + 1;
         }
         
         /* We have successfully read if lineValue is greater than zero */
