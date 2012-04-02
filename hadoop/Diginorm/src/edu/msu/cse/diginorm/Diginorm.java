@@ -6,6 +6,8 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
@@ -50,15 +52,14 @@ public class Diginorm extends Configured implements Tool
         job.setReducerClass(ReduceCountKmers.class);
 
         job.setMapOutputKeyClass(Text.class);
-        job.setMapOutputValueClass(Text.class);
-        job.setOutputKeyClass(Text.class);
+        job.setMapOutputValueClass(LongWritable.class);
+        job.setOutputKeyClass(LongWritable.class);
         job.setOutputValueClass(IntWritable.class);
 
         if(job.waitForCompletion(true))
         {
             // Configuration processed by ToolRunner
             Configuration conf2 = getConf(); //new Configuration();
-            conf2.set("mapred.textoutputformat.separator", "\n");
             Job job2 = new Job(conf2);
             job2.setJarByClass(Diginorm.class);
 
@@ -70,10 +71,10 @@ public class Diginorm extends Configured implements Tool
             job2.setMapperClass(IdentityMapper.class);
             job2.setReducerClass(MedianCountReducer.class);
 
-            job2.setMapOutputKeyClass(Text.class);
+            job2.setMapOutputKeyClass(LongWritable.class);
             job2.setMapOutputValueClass(IntWritable.class);
             job2.setOutputKeyClass(Text.class);
-            job2.setOutputValueClass(Text.class);
+            job2.setOutputValueClass(NullWritable.class);
             
             int rc = (job2.waitForCompletion(true) ? 0 : 1);
             FileSystem.get(conf2).delete(tmpDir, true);

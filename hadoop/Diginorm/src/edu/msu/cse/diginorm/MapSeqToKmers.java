@@ -5,7 +5,7 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 
-public class MapSeqToKmers extends Mapper<LongWritable, Text, Text, Text>
+public class MapSeqToKmers extends Mapper<LongWritable, Text, Text, LongWritable>
 {
     public void map(LongWritable key, Text value, Context context)
             throws IOException, InterruptedException
@@ -16,7 +16,7 @@ public class MapSeqToKmers extends Mapper<LongWritable, Text, Text, Text>
         int numKmers = seq.length() - K + 1;
         for (int i = 0; i < numKmers; i++)
         {
-            context.write(new Text(seq.substring(i, i+K)), value);
+            context.write(new Text(seq.substring(i, i+K)), key);
         }
     }
 }

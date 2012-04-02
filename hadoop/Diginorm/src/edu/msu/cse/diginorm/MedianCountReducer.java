@@ -4,13 +4,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 
 import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
-public class MedianCountReducer extends Reducer<Text, IntWritable, Text, Text>
+public class MedianCountReducer extends Reducer<LongWritable, IntWritable, Text, NullWritable>
 {
-    Text id = new Text(">d");
-    public void reduce(Text key, Iterable<IntWritable> values, Context context)
+    public void reduce(LongWritable key, Iterable<IntWritable> values, Context context)
             throws IOException, InterruptedException
     {
         ArrayList<Integer> cache = new ArrayList<Integer>();
@@ -25,7 +26,7 @@ public class MedianCountReducer extends Reducer<Text, IntWritable, Text, Text>
         // If Median is less than C, keep it. If not, pitch it.
         if (cache.get(cache.size() / 2) <= C)
         {
-            context.write(id ,key);
+            context.write(new Text(key.toString()), NullWritable.get());
         }
     }
 }
